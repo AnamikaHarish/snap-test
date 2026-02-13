@@ -3,87 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SplitSmart Pro | AI Expense Manager</title>
+    <title>SplitSmart | Hackathon Edition</title>
     
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Chart.js for Analytics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <link rel="stylesheet" href="style.css">
 </head>
-<body data-theme="light">
+<body data-theme="dark">
 
-    <!-- Navbar -->
     <nav>
         <div class="logo">
             <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
-            <span>SplitSmart <span class="badge">AI</span></span>
+            <span>SplitSmart <span class="badge">PRO</span></span>
         </div>
-        <button class="theme-toggle" onclick="toggleTheme()">
-            <i class="fa-solid fa-moon"></i>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark Mode">
+            <i class="fa-solid fa-sun"></i>
         </button>
     </nav>
 
     <div class="container">
 
-        <!-- STEP 1: SETUP (Hero Section) -->
         <div id="setup-section" class="hero-section">
             <div class="hero-content">
-                <h1>Split expenses,<br>keep friendships.</h1>
-                <p>The AI-powered way to track shared costs.</p>
+                <h1>Pay bills,<br>not friendships.</h1>
+                <p>OCR Scanning • UPI Integration • AI Expense Roasts</p>
                 
-                <div class="setup-box">
+                <div class="setup-box glass">
                     <input type="text" id="group-name" placeholder="Group Name (e.g. Goa Trip)">
                     <input type="text" id="member-names" placeholder="Members (Alice, Bob, Charlie)">
-                    <button onclick="createGroup()" class="btn-primary">
-                        Start Dashboard <i class="fa-solid fa-arrow-right"></i>
+                    <button onclick="createGroup()" class="btn-primary glow-effect">
+                        Launch Dashboard <i class="fa-solid fa-rocket"></i>
                     </button>
                 </div>
             </div>
             <div class="hero-visual">
-                <i class="fa-solid fa-credit-card floating-icon"></i>
-                <i class="fa-solid fa-receipt floating-icon delay-1"></i>
+                <i class="fa-solid fa-indian-rupee-sign floating-icon"></i>
+                <i class="fa-solid fa-qrcode floating-icon delay-1"></i>
             </div>
         </div>
 
-        <!-- STEP 2: DASHBOARD (Hidden) -->
         <div id="dashboard-section" class="dashboard hidden">
             
             <header class="dash-header">
                 <div>
                     <h2 id="display-group-name">My Group</h2>
-                    <p class="text-muted">Overview</p>
+                    <p class="text-muted">Smart Expense Manager</p>
                 </div>
                 <div class="dash-actions">
-                    <button onclick="window.print()" class="btn-secondary"><i class="fa-solid fa-file-export"></i> Report</button>
+                    <button onclick="roastGroup()" class="btn-roast">🔥 Roast Us</button>
+                    <button onclick="downloadCSV()" class="btn-secondary"><i class="fa-solid fa-file-csv"></i> CSV</button>
                     <button onclick="getBalances()" class="btn-primary"><i class="fa-solid fa-rotate"></i> Refresh</button>
                 </div>
             </header>
 
             <div class="grid-layout">
                 
-                <!-- LEFT: Add Expense -->
-                <div class="card expense-panel">
+                <div class="card expense-panel glass">
                     <div class="card-header">
                         <h3>Add Expense</h3>
-                        
-                        <!-- VOICE INPUT BUTTON -->
                         <button onclick="startVoiceInput()" class="voice-btn" title="Speak: 'Burger 500 Alice'">
                             <i class="fa-solid fa-microphone"></i>
                         </button>
                     </div>
 
-                    <!-- OCR & Image Preview -->
                     <div class="upload-area">
                         <label for="bill-image" class="upload-label">
                             <i class="fa-solid fa-camera"></i>
-                            <span>Scan Bill</span>
+                            <span>Scan Receipt (AI-OCR)</span>
                         </label>
                         <input type="file" id="bill-image" accept="image/*" onchange="scanBill()" hidden>
-                        <span id="ocr-status">No file selected</span>
+                        <span id="ocr-status" class="status-text">No file selected</span>
                     </div>
 
                     <div class="input-grid">
@@ -129,29 +123,23 @@
                     <button onclick="addExpense()" class="btn-primary full-width">Add Expense</button>
                 </div>
 
-                <!-- RIGHT: Analytics & Debts -->
                 <div class="analytics-panel">
                     
-                    <!-- Charts Row -->
-                    <div class="charts-container">
-                        <div class="card chart-card">
-                            <h4>Spending by Category</h4>
-                            <div class="chart-wrapper">
-                                <canvas id="categoryChart"></canvas>
-                            </div>
+                    <div class="card chart-card glass">
+                        <h4>Spending DNA</h4>
+                        <div class="chart-wrapper">
+                            <canvas id="categoryChart"></canvas>
                         </div>
                     </div>
 
-                    <!-- Settlements -->
-                    <div class="card">
-                        <h4><i class="fa-solid fa-money-bill-transfer"></i> Optimized Settlements</h4>
+                    <div class="card glass">
+                        <h4><i class="fa-solid fa-wand-magic-sparkles"></i> Smart Settlements</h4>
                         <div id="transactions-list" class="transaction-list">
                             <div class="empty-state">No debts to settle yet.</div>
                         </div>
                     </div>
 
-                    <!-- Balances -->
-                    <div class="card">
+                    <div class="card glass">
                         <h4><i class="fa-solid fa-wallet"></i> Net Balances</h4>
                         <ul id="balance-list" class="balance-list"></ul>
                     </div>
@@ -161,7 +149,16 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
+    <div id="qr-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeQR()">&times;</span>
+            <h3>Scan to Pay</h3>
+            <div id="qrcode"></div>
+            <p id="qr-text" class="text-muted">Loading...</p>
+            <button onclick="markAsPaid()" class="btn-primary full-width">I Paid This</button>
+        </div>
+    </div>
+
     <div id="toast-box"></div>
 
     <script src="script.js"></script>
