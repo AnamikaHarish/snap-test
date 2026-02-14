@@ -13,7 +13,7 @@ CORS(app)
 # ⚙️ CONFIGURATION
 # ==========================================
 # WINDOWS USERS: UNCOMMENT AND SET YOUR PATH
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r"D:\Ami college activities (extra)\tesseract\tesseract.exe"
 # ==========================================
 
 # --- IN-MEMORY DATABASE ---

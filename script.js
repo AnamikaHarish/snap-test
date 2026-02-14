@@ -1,7 +1,7 @@
 let MEMBERS = [];
 let EXPENSES = [];
 let chartInstance = null;
-let currentTxButton = null; // To track which debt is being paid
+let currentTxButton = null;
 
 // --- UTILS ---
 function toggleTheme() {
@@ -12,9 +12,15 @@ function toggleTheme() {
 
 function showToast(msg, type='success') {
     const box = document.getElementById('toast-box');
+    if (!box) return;
+    
     const toast = document.createElement('div');
     toast.className = 'toast';
-    toast.style.background = type === 'error' ? '#ef4444' : (type === 'roast' ? '#f59e0b' : '#10b981');
+    // Color logic
+    if (type === 'error') toast.style.background = '#ef4444'; // Red
+    else if (type === 'roast') toast.style.background = '#f59e0b'; // Orange
+    else toast.style.background = '#10b981'; // Green
+    
     toast.innerText = msg;
     box.appendChild(toast);
     setTimeout(() => toast.remove(), 4000);
@@ -24,27 +30,67 @@ function getAvatar(name) {
     return `https://api.dicebear.com/7.x/initials/svg?seed=${name}`;
 }
 
-// --- SETUP ---
+// --- SETUP (FIXED) ---
 async function createGroup() {
-    const name = document.getElementById('group-name').value;
-    const membersRaw = document.getElementById('member-names').value;
-    if (!name || !membersRaw) return showToast("Please fill all fields", "error");
+    const nameInput = document.getElementById('group-name');
+    const membersInput = document.getElementById('member-names');
+
+    // 1. Validate Inputs
+    if (!nameInput || !membersInput) {
+        alert("Error: HTML elements not found. Check your IDs.");
+        return;
+    }
+
+    const name = nameInput.value.trim();
+    const membersRaw = membersInput.value.trim();
+
+    if (!name || !membersRaw) {
+        showToast("Please fill in Group Name and Members!", "error");
+        return;
+    }
 
     MEMBERS = membersRaw.split(',').map(m => m.trim()).filter(m => m);
     
-    const res = await fetch('http://127.0.0.1:5000/create-group', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, members: MEMBERS })
-    });
+    if (MEMBERS.length === 0) {
+        showToast("Add at least one member.", "error");
+        return;
+    }
 
-    if (res.ok) {
-        document.getElementById('setup-section').classList.add('hidden');
-        document.getElementById('dashboard-section').classList.remove('hidden');
-        document.getElementById('display-group-name').innerText = name;
-        populatePayerDropdown();
-        updateSplitUI();
-        showToast("🚀 Dashboard Launched!");
+    // 2. Show Loading State (So you know it's working)
+    const btn = document.querySelector('.setup-box button');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Connecting...';
+    btn.disabled = true;
+
+    try {
+        // 3. Attempt Connection
+        const res = await fetch('http://127.0.0.1:5000/create-group', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, members: MEMBERS })
+        });
+
+        if (res.ok) {
+            // Success!
+            document.getElementById('setup-section').classList.add('hidden');
+            document.getElementById('dashboard-section').classList.remove('hidden');
+            document.getElementById('display-group-name').innerText = name;
+            populatePayerDropdown();
+            updateSplitUI();
+            showToast("🚀 Dashboard Launched!");
+        } else {
+            // Server returned an error (e.g., 500)
+            const err = await res.json();
+            showToast("Server Error: " + (err.error || "Unknown"), "error");
+        }
+    } catch (error) {
+        // 4. NETWORK ERROR (This is why you were stuck!)
+        console.error("Fetch error:", error);
+        showToast("Connection Failed! Is 'python app.py' running?", "error");
+    } finally {
+        // Reset button
+        btn.innerHTML = originalText;
+        btn.disabled = false;
     }
 }
 
@@ -59,12 +105,11 @@ function populatePayerDropdown() {
     });
 }
 
-// --- COOL FEATURES: ROAST, NAG, UPI ---
+// --- FEATURES ---
 
 function roastGroup() {
     if(EXPENSES.length === 0) return showToast("Add expenses first!", "error");
     
-    // Simple "AI" Logic
     const food = EXPENSES.filter(e => e.category === 'Dining').reduce((a,b)=>a+b.amount,0);
     const total = EXPENSES.reduce((a,b)=>a+b.amount,0);
     
@@ -82,52 +127,40 @@ function nag(member, amount) {
 }
 
 function showQR(to, from, amount, btn) {
-    currentTxButton = btn; // Save button reference
+    currentTxButton = btn; 
     const modal = document.getElementById('qr-modal');
     const qrDiv = document.getElementById('qrcode');
     const text = document.getElementById('qr-text');
     
     modal.classList.remove('hidden');
-    qrDiv.innerHTML = ""; // Clear old QR
+    qrDiv.innerHTML = ""; 
     
-    // Real UPI String Format: upi://pay?pa={UPI_ID}&pn={NAME}&am={AMOUNT}&cu=INR
-    // Using a placeholder UPI ID for hackathon demo
     const upiStr = `upi://pay?pa=hackathon@upi&pn=${to}&am=${amount}&cu=INR`;
     
-    new QRCode(qrDiv, {
-        text: upiStr,
-        width: 150,
-        height: 150
-    });
-    
+    new QRCode(qrDiv, { text: upiStr, width: 150, height: 150 });
     text.innerText = `Scan to pay ₹${amount} to ${to}`;
 }
 
-function closeQR() {
-    document.getElementById('qr-modal').classList.add('hidden');
-}
-
-function markAsPaid() {
-    closeQR();
-    if(currentTxButton) {
-        settleDebt(currentTxButton);
-    }
-}
-
-function downloadCSV() {
-    // FIX: Use absolute path to ensure download triggers
-    window.location.href = "http://127.0.0.1:5000/download-report";
-}
+function closeQR() { document.getElementById('qr-modal').classList.add('hidden'); }
+function markAsPaid() { closeQR(); if(currentTxButton) settleDebt(currentTxButton); }
+function downloadCSV() { window.location.href = "http://127.0.0.1:5000/download-report"; }
 
 // --- CORE LOGIC ---
 
 async function addExpense() {
     const title = document.getElementById('exp-title').value;
-    const amount = document.getElementById('exp-amount').value;
+    let amount = parseFloat(document.getElementById('exp-amount').value);
     const payer = document.getElementById('exp-payer').value;
     const type = document.getElementById('split-type').value;
 
     if (!title || !amount) return showToast("Missing details", "error");
+
+    // Smart Tax Logic Check
+    const taxToggle = document.getElementById('smart-tax');
+    if(taxToggle && taxToggle.checked) {
+        amount = amount + (amount * 0.05) + (amount * 0.10); // 5% GST + 10% Tip
+        amount = parseFloat(amount.toFixed(2));
+    }
 
     let payload = { title, amount, payer, category: document.getElementById('exp-category').value, split_type: type };
 
@@ -146,68 +179,74 @@ async function addExpense() {
         payload.items = items;
     }
 
-    const res = await fetch('http://127.0.0.1:5000/add-expense', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
+    try {
+        const res = await fetch('http://127.0.0.1:5000/add-expense', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
 
-    if (res.ok) {
-        showToast("Expense Added");
-        document.getElementById('exp-amount').value = '';
-        getBalances();
+        if (res.ok) {
+            showToast(`Expense Added: ₹${amount}`);
+            document.getElementById('exp-amount').value = '';
+            getBalances();
+        } else {
+            showToast("Failed to add expense", "error");
+        }
+    } catch (e) {
+        showToast("Connection Error", "error");
     }
 }
 
 async function getBalances() {
-    const res = await fetch('http://127.0.0.1:5000/calculate-balance');
-    const data = await res.json();
-    EXPENSES = data.expenses;
+    try {
+        const res = await fetch('http://127.0.0.1:5000/calculate-balance');
+        const data = await res.json();
+        EXPENSES = data.expenses;
 
-    const txDiv = document.getElementById('transactions-list');
-    txDiv.innerHTML = data.transactions.length ? '' : '<div class="empty-state">All settled! 🎉</div>';
-    
-    data.transactions.forEach(tx => {
-        // Safe check for object properties
-        let from = tx.from || tx.debtor; 
-        let to = tx.to || tx.creditor;
-        let amt = tx.amount;
+        const txDiv = document.getElementById('transactions-list');
+        txDiv.innerHTML = data.transactions.length ? '' : '<div class="empty-state">All settled! 🎉</div>';
+        
+        data.transactions.forEach(tx => {
+            let from = tx.from || tx.debtor; 
+            let to = tx.to || tx.creditor;
+            let amt = tx.amount;
 
-        txDiv.innerHTML += `
-            <div class="transaction-item">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <img src="${getAvatar(from)}" class="avatar">
-                    <div>
-                        <strong>${from}</strong> pays <strong>${to}</strong>
-                        <div style="font-size:0.8rem; color:var(--text-muted)">₹${amt}</div>
+            txDiv.innerHTML += `
+                <div class="transaction-item">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="${getAvatar(from)}" class="avatar">
+                        <div>
+                            <strong>${from}</strong> pays <strong>${to}</strong>
+                            <div style="font-size:0.8rem; color:var(--text-muted)">₹${amt}</div>
+                        </div>
                     </div>
-                </div>
-                <div class="tx-actions">
-                    <button onclick="nag('${from}', '${amt}')" class="action-btn nag-btn" title="Send WhatsApp Reminder">
-                        <i class="fa-brands fa-whatsapp"></i>
-                    </button>
-                    <button onclick="showQR('${to}', '${from}', '${amt}', this)" class="action-btn pay-btn" title="Pay with UPI">
-                        <i class="fa-solid fa-qrcode"></i>
-                    </button>
-                </div>
-            </div>`;
-    });
+                    <div class="tx-actions">
+                        <button onclick="nag('${from}', '${amt}')" class="action-btn nag-btn"><i class="fa-brands fa-whatsapp"></i></button>
+                        <button onclick="showQR('${to}', '${from}', '${amt}', this)" class="action-btn pay-btn"><i class="fa-solid fa-qrcode"></i></button>
+                    </div>
+                </div>`;
+        });
 
-    const balList = document.getElementById('balance-list');
-    balList.innerHTML = '';
-    for (const [m, amt] of Object.entries(data.balances)) {
-        let color = amt >= 0 ? 'positive' : 'negative';
-        let arrow = amt >= 0 ? '↑' : '↓';
-        balList.innerHTML += `<li>
-            <span><img src="${getAvatar(m)}" class="avatar">${m}</span>
-            <span class="${color}">${arrow} ₹${Math.abs(amt).toFixed(2)}</span>
-        </li>`;
+        const balList = document.getElementById('balance-list');
+        balList.innerHTML = '';
+        
+        for (const [m, amt] of Object.entries(data.balances)) {
+            let color = amt >= 0 ? 'positive' : 'negative';
+            let arrow = amt >= 0 ? '↑' : '↓';
+            balList.innerHTML += `<li>
+                <span><img src="${getAvatar(m)}" class="avatar">${m}</span>
+                <span class="${color}">${arrow} ₹${Math.abs(amt).toFixed(2)}</span>
+            </li>`;
+        }
+        updateChart();
+    } catch (e) {
+        console.error(e);
+        showToast("Error fetching balances", "error");
     }
-    updateChart();
 }
 
 function settleDebt(btn) {
-    // Traverse up to find the transaction item
     const item = btn.closest('.transaction-item');
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
     item.style.opacity = '0.5';
@@ -232,20 +271,15 @@ function updateChart() {
                 borderWidth: 0
             }]
         },
-        options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } } 
-        }
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } } }
     });
 }
 
-// Voice & OCR Functions (Kept from original)
 function startVoiceInput() {
     if (!('webkitSpeechRecognition' in window)) return alert("Use Chrome for Voice");
     const recognition = new webkitSpeechRecognition();
     recognition.lang = 'en-US';
-    showToast("Listening... 'Dinner 500 Alice'", "success");
+    showToast("Listening...", "success");
     recognition.onresult = function(event) {
         const text = event.results[0][0].transcript;
         const words = text.split(' ');
