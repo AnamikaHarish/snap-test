@@ -6,7 +6,7 @@ import re
 import io
 import csv
 
-app = Flask(__name__, template_folder='.', static_folder='.')
+app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
 
 # ==========================================
