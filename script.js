@@ -64,7 +64,7 @@ async function createGroup() {
 
     try {
         // 3. Attempt Connection
-        const res = await fetch('http://127.0.0.1:5000/create-group', {
+        const res = await fetch('https://snap-test-q68s.onrender.com/create-group', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, members: MEMBERS })
@@ -143,7 +143,7 @@ function showQR(to, from, amount, btn) {
 
 function closeQR() { document.getElementById('qr-modal').classList.add('hidden'); }
 function markAsPaid() { closeQR(); if(currentTxButton) settleDebt(currentTxButton); }
-function downloadCSV() { window.location.href = "http://127.0.0.1:5000/download-report"; }
+function downloadCSV() { window.location.href = "https://snap-test-q68s.onrender.com/download-report"; }
 
 // --- CORE LOGIC ---
 
@@ -180,7 +180,7 @@ async function addExpense() {
     }
 
     try {
-        const res = await fetch('http://127.0.0.1:5000/add-expense', {
+        const res = await fetch('https://snap-test-q68s.onrender.com/add-expense', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -200,7 +200,7 @@ async function addExpense() {
 
 async function getBalances() {
     try {
-        const res = await fetch('http://127.0.0.1:5000/calculate-balance');
+        const res = await fetch('https://snap-test-q68s.onrender.com/calculate-balance');
         const data = await res.json();
         EXPENSES = data.expenses;
 
@@ -300,7 +300,7 @@ async function scanBill() {
     formData.append('file', file);
     document.getElementById('ocr-status').innerText = "Scanning...";
     try {
-        const res = await fetch('http://127.0.0.1:5000/scan-bill', { method: 'POST', body: formData });
+        const res = await fetch('https://snap-test-q68s.onrender.com/scan-bill', { method: 'POST', body: formData });
         const data = await res.json();
         if(data.detected_total > 0) {
             document.getElementById('exp-amount').value = data.detected_total;
